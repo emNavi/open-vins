@@ -29,6 +29,9 @@
     <!-- MASTER NODE! -->
 <!--    <node name="ov_msckf" pkg="ov_msckf" type="run_subscribe_msckf" output="screen" clear_params="true" required="true" launch-prefix="gdb -ex run &#45;&#45;args">-->
     <node name="ov_msckf" pkg="ov_msckf" type="run_subscribe_msckf" output="screen" clear_params="true" required="true">
+        <!-- 适配 emnavi 项目的话题转发 -->
+        <remap from="~imu_propagate" to="/quadrotor_control/odom"/>
+		<remap from="~imu_propagate_pose" to="/mavros/vision_pose/pose"/>
 
         <!-- master configuration object -->
         <param name="verbosity"              type="string" value="$(arg verbosity)" />

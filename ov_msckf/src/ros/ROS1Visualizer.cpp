@@ -49,6 +49,23 @@ ROS1Visualizer::ROS1Visualizer(std::shared_ptr<ros::NodeHandle> nh, std::shared_
   PRINT_DEBUG("Publishing: %s\n", pub_poseimu.getTopic().c_str());
   pub_odomimu = nh->advertise<nav_msgs::Odometry>("odomimu", 2);
   PRINT_DEBUG("Publishing: %s\n", pub_odomimu.getTopic().c_str());
+  pub_latest_odometry = nh->advertise<nav_msgs::Odometry>("imu_propagate", 2);
+  pub_latest_posestamped = nh->advertise<geometry_msgs::PoseStamped>("imu_propagate_pose", 2);
+
+  transformStamped.header.frame_id = "global";
+  transformStamped.child_frame_id = "world";
+  transformStamped.transform.translation.x = 0.0;
+  transformStamped.transform.translation.y = 0.0;
+  transformStamped.transform.translation.z = 0.0;
+
+  tf2::Quaternion q;
+  q.setRPY(0, 0, 3 * M_PI / 2);  // 3π/2 表示 270 度
+  transformStamped.transform.rotation.x = q.x();
+  transformStamped.transform.rotation.y = q.y();
+  transformStamped.transform.rotation.z = q.z();
+  transformStamped.transform.rotation.w = q.w();
+
+
   pub_pathimu = nh->advertise<nav_msgs::Path>("pathimu", 2);
   PRINT_DEBUG("Publishing: %s\n", pub_pathimu.getTopic().c_str());
 
@@ -324,6 +341,11 @@ void ROS1Visualizer::visualize_odometry(double timestamp) {
       }
     }
     pub_odomimu.publish(odomIinM);
+    
+    // 施加一个变换并作为里程计话题用于飞行器
+    br.sendTransform(transformStamped);
+    odomIinM.header.frame_id = "world";
+    pub_latest_odometry.publish(odomIinM);
   }
 
   // Publish our transform on TF
@@ -622,6 +644,15 @@ void ROS1Visualizer::publish_state() {
     }
   }
   pub_poseimu.publish(poseIinM);
+
+  // 施加一个变换并作为里程计话题用于飞行器
+  br.sendTransform(transformStamped);
+  geometry_msgs::PoseStamped posestamp;
+  posestamp.header.stamp = poseIinM.header.stamp;
+  posestamp.header.frame_id = "world";
+  posestamp.pose.position =  poseIinM.pose.pose.position;
+  posestamp.pose.orientation =  poseIinM.pose.pose.orientation;
+  pub_latest_posestamped.publish(posestamp);
 
   //=========================================================
   //=========================================================
